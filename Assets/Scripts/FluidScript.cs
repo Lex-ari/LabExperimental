@@ -8,8 +8,13 @@ public class FluidScript : MonoBehaviour
     private Renderer m_purpleLiquidRenderer;
     public float Fill;  
     public float centerOffset;
-    public float dot;
     public float cylindricalFixVariable;
+
+    public float pourThreshold = 45;
+    public GameObject streamPrefab;
+    public Transform origin;
+    private bool isPouring = false;
+    private Stream currentStream = null;
 
     // Start is called before the first frame update
     void Start()
@@ -21,11 +26,12 @@ public class FluidScript : MonoBehaviour
     void Update()
     {
         UpdateFill();
+        UpdatePour();
     }
 
     private void UpdateFill() {
         Vector3 upvector = gameObject.transform.up ;
-        dot = Vector3.Dot(upvector, Vector3.up);
+        float dot = Vector3.Dot(upvector, Vector3.up);
         float cylindricalFix = 1 + -cylindricalFixVariable * 0.5f * (Mathf.Cos(dot * Mathf.PI) + 1);
         float fillValue;
         if (Fill < 1E-9) {
@@ -38,7 +44,31 @@ public class FluidScript : MonoBehaviour
         m_purpleLiquidRenderer.material.SetFloat("_Fill", fillValue);
 	}
 
-    private void SetFill(float fill) {
+    public void SetFill(float fill) {
         
+	}
+
+    private void UpdatePour() {
+        bool pourCheck = CalculatePourAngle() > pourThreshold;
+        if (isPouring != pourCheck) {
+            isPouring = pourCheck;
+            if (isPouring) {
+                currentStream = CreateStream();
+                currentStream.Begin();
+			} else {
+                currentStream.End();
+                currentStream = null;
+			}
+		}
+	}
+
+
+    private float CalculatePourAngle() {
+        return (1 - Vector3.Dot(transform.up, Vector3.up)) * 180;
+	}
+
+    private Stream CreateStream() {
+        GameObject streamObject = Instantiate(streamPrefab, origin.position, Quaternion.identity, transform);
+        return streamObject.GetComponent<Stream>();
 	}
 }

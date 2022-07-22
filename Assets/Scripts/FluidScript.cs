@@ -35,6 +35,8 @@ public class FluidScript : MonoBehaviour
         UpdatePour();
     }
 
+    // Used to "render" the fill, taking into consideration of offset of the mesh and rotation.
+    // Not geometrically accurate, but suffices for testing.
     private void UpdateFill() {
         Vector3 upvector = gameObject.transform.up ;
         float dot = Vector3.Dot(upvector, Vector3.up);
@@ -50,12 +52,15 @@ public class FluidScript : MonoBehaviour
         m_purpleLiquidRenderer.material.SetFloat("_Fill", fillValue);
 	}
 
+    // Allows to set the fill of the beaker from 0 (empty) to 1 (full)
     public void SetFill(float fill) {
         
 	}
 
+    // Checks if the object is pouring.
+    // If pouring, starts. If not pouring anymore, stops.
     private void UpdatePour() {
-        bool pourCheck = CalculatePourAngle() > pourThreshold;
+        bool pourCheck = CalculatePourEnabled();
         if (isPouring != pourCheck) {
             isPouring = pourCheck;
             if (isPouring) {
@@ -68,6 +73,8 @@ public class FluidScript : MonoBehaviour
 		}
 	}
 
+    // Calculates the "lowest point" of the top of the cylinder and sets the origin to that point.
+    // Simulates pouring at a weird angle.
     private void UpdateOrigin() {
         float xValue = transform.eulerAngles.x; // z direction
         float zValue = transform.eulerAngles.z; // x direction
@@ -90,9 +97,10 @@ public class FluidScript : MonoBehaviour
         //origin.transform.localPosition = new Vector3(Mathf.Cos(zValue * Mathf.Deg2Rad), heightOffset, 0);
 	}
 
-
-    private float CalculatePourAngle() {
-        return (1 - Vector3.Dot(transform.up, Vector3.up)) * 180;
+    // Determines if the angle of the cylinder is enough to pour out liquid.
+    // Uses the fill calculations to determinte output.
+    private bool CalculatePourEnabled() {
+        return origin.transform.position.y < transform.position.y;
 	}
 
     private Stream CreateStream() {

@@ -16,16 +16,22 @@ public class FluidScript : MonoBehaviour
     private bool isPouring = false;
     private Stream currentStream = null;
 
+    private float xzOffset;
+    private float heightOffset;
+
     // Start is called before the first frame update
     void Start()
     {
         m_purpleLiquidRenderer = gameObject.GetComponent<Renderer>();
-    }
+        xzOffset = origin.transform.localPosition.x;
+        heightOffset = origin.transform.localPosition.y;
+}
 
     // Update is called once per frame
     void Update()
     {
         UpdateFill();
+        UpdateOrigin();
         UpdatePour();
     }
 
@@ -60,6 +66,25 @@ public class FluidScript : MonoBehaviour
                 currentStream = null;
 			}
 		}
+	}
+
+    private void UpdateOrigin() {
+        float xValue = transform.eulerAngles.x;
+        float zValue = transform.eulerAngles.z;
+        float angle;
+        if (Mathf.Abs(zValue) < 1E-9) {
+            if (xValue > 0) {
+                angle = 90;
+			} else {
+                angle = -90;
+			}
+		} else {
+            angle = Mathf.Atan(Mathf.Sin(xValue * Mathf.Deg2Rad) / Mathf.Cos(zValue * Mathf.Deg2Rad)) * Mathf.Rad2Deg;
+        }
+        
+        Debug.Log("xValue: " + xValue + " zValue: " + zValue + " angle: " + angle);
+        origin.transform.localPosition = new Vector3(Mathf.Cos(angle * Mathf.Deg2Rad) * xzOffset, heightOffset, -Mathf.Sin(angle * Mathf.Deg2Rad) * xzOffset);
+        //origin.transform.localPosition = new Vector3(Mathf.Cos(zValue * Mathf.Deg2Rad), heightOffset, 0);
 	}
 
 

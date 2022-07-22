@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6229147424863312020}
   - component: {fileID: 8978012122707860719}
-  - component: {fileID: 5312153915263763325}
+  - component: {fileID: -1670838907952837333}
   m_Layer: 0
   m_Name: Stream
   m_TagString: Untagged
@@ -141,7 +141,7 @@ LineRenderer:
     generateLightingData: 0
   m_UseWorldSpace: 1
   m_Loop: 0
---- !u!114 &5312153915263763325
+--- !u!114 &-1670838907952837333
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

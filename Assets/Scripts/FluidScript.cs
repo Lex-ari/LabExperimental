@@ -69,17 +69,20 @@ public class FluidScript : MonoBehaviour
 	}
 
     private void UpdateOrigin() {
-        float xValue = transform.eulerAngles.x;
-        float zValue = transform.eulerAngles.z;
+        float xValue = transform.eulerAngles.x; // z direction
+        float zValue = transform.eulerAngles.z; // x direction
         float angle;
-        if (Mathf.Abs(zValue) < 1E-9) {
+        if (zValue % 359.99 < 1E-3) {
             if (xValue > 0) {
                 angle = 90;
 			} else {
                 angle = -90;
 			}
 		} else {
-            angle = Mathf.Atan(Mathf.Sin(xValue * Mathf.Deg2Rad) / Mathf.Cos(zValue * Mathf.Deg2Rad)) * Mathf.Rad2Deg;
+            angle = Mathf.Atan(Mathf.Sin(xValue * Mathf.Deg2Rad) / Mathf.Sin(zValue * Mathf.Deg2Rad)) * Mathf.Rad2Deg;
+            if (zValue > 180) {
+                angle += 180;
+			}
         }
         
         Debug.Log("xValue: " + xValue + " zValue: " + zValue + " angle: " + angle);
@@ -93,7 +96,7 @@ public class FluidScript : MonoBehaviour
 	}
 
     private Stream CreateStream() {
-        GameObject streamObject = Instantiate(streamPrefab, origin.position, Quaternion.identity, transform);
+        GameObject streamObject = Instantiate(streamPrefab, origin.position, Quaternion.identity, origin.transform);
         return streamObject.GetComponent<Stream>();
 	}
 }

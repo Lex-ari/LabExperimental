@@ -90,4 +90,8 @@ public class Stream : MonoBehaviour
 			yield return null;
 		}
 	}
+
+	public void SetWidthMultiplier(float width) {
+		lineRenderer.widthMultiplier = width;
+	}
 }

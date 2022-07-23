@@ -33,10 +33,12 @@ public class FluidScript : MonoBehaviour
         UpdateFill();
         UpdateOrigin();
         UpdatePour();
+        UpdateStreamWidth();
     }
 
     // Used to "render" the fill, taking into consideration of offset of the mesh and rotation.
     // Not geometrically accurate, but suffices for testing.
+    // Will remake in the future to account for cylindrical and cone shaped glassware
     private void UpdateFill() {
         Vector3 upvector = gameObject.transform.up ;
         float dot = Vector3.Dot(upvector, Vector3.up);
@@ -51,7 +53,6 @@ public class FluidScript : MonoBehaviour
 		}
         m_purpleLiquidRenderer.material.SetFloat("_Fill", fillValue);
 	}
-
     // Allows to set the fill of the beaker from 0 (empty) to 1 (full)
     public void SetFill(float fill) {
         
@@ -79,7 +80,7 @@ public class FluidScript : MonoBehaviour
         float xValue = transform.eulerAngles.x; // z direction
         float zValue = transform.eulerAngles.z; // x direction
         float angle;
-        if (zValue % 359.99 < 1E-3) {
+        if (zValue % 359.99 < 1E-3) { // used to prevent a 1/0 = infinity calculation, saving FPS.
             if (xValue > 0) {
                 angle = 90;
 			} else {
@@ -92,19 +93,32 @@ public class FluidScript : MonoBehaviour
 			}
         }
         
-        Debug.Log("xValue: " + xValue + " zValue: " + zValue + " angle: " + angle);
         origin.transform.localPosition = new Vector3(Mathf.Cos(angle * Mathf.Deg2Rad) * xzOffset, heightOffset, -Mathf.Sin(angle * Mathf.Deg2Rad) * xzOffset);
-        //origin.transform.localPosition = new Vector3(Mathf.Cos(zValue * Mathf.Deg2Rad), heightOffset, 0);
 	}
 
     // Determines if the angle of the cylinder is enough to pour out liquid.
-    // Uses the fill calculations to determinte output.
+    // If the origin (lip of beaker) is less than the fill, it spills.
     private bool CalculatePourEnabled() {
-        return origin.transform.position.y < transform.position.y;
+        return origin.transform.position.y - transform.position.y < m_purpleLiquidRenderer.material.GetFloat("_Fill") * transform.lossyScale.y;
 	}
 
     private Stream CreateStream() {
         GameObject streamObject = Instantiate(streamPrefab, origin.position, Quaternion.identity, origin.transform);
         return streamObject.GetComponent<Stream>();
 	}
+
+    private void UpdateStreamWidth() {
+        float dotProduct = Vector3.Dot(transform.up, Vector3.up);
+		float angle = Mathf.Acos(dotProduct);
+        float centerHeight = 0.5f * dotProduct * m_purpleLiquidRenderer.bounds.size.y;
+        float fluidHeight = centerHeight - ((m_purpleLiquidRenderer.material.GetFloat("_Fill") - dotProduct * centerOffset) * transform.lossyScale.y);
+        float radius = Mathf.Abs(xzOffset) * transform.lossyScale.x;
+        float radiusToFluidAngled = fluidHeight / Mathf.Sin(angle);
+        float chord = 2 * Mathf.Sqrt((radius * radius) - (radiusToFluidAngled * radiusToFluidAngled));
+        if (currentStream != null) {
+            currentStream.SetWidthMultiplier(chord);
+		}
+        Debug.Log("dotProduct: " + dotProduct + " angle:" + angle * Mathf.Rad2Deg + " fluidHeight:" + fluidHeight + " centerHeight:" + centerHeight + " radius:" + radius + " radiusToFluidAngled:" + radiusToFluidAngled + " chord:" + chord);
+		
+    }
 }

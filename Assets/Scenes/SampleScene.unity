@@ -357,7 +357,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8220bae42b0c4f043b53e88552c957dc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Fill: 0
+  Fill: 0.7
   centerOffset: 0.14899
   cylindricalFixVariable: 0.2
   pourThreshold: 45

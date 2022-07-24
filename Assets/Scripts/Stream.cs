@@ -91,7 +91,9 @@ public class Stream : MonoBehaviour
 		}
 	}
 
-	public void SetWidthMultiplier(float width) {
-		lineRenderer.widthMultiplier = width;
+	public void SetWidthMultiplier(float width, float radius) {
+		float percentage = (width / (2 * radius)) * 0.1f;
+		lineRenderer.startWidth = 0.0025f * 0.25f + (width - 0.0025f * 0.25f) * percentage;
+		lineRenderer.endWidth = 0.0025f + (radius - 0.0025f) * percentage;
 	}
 }

@@ -109,14 +109,15 @@ public class FluidScript : MonoBehaviour
 
     private void UpdateStreamWidth() {
         float dotProduct = Vector3.Dot(transform.up, Vector3.up);
-		float angle = Mathf.Acos(dotProduct);
+		float angle = Mathf.Acos(dotProduct) + 10 * Mathf.Deg2Rad;
         float centerHeight = 0.5f * dotProduct * m_purpleLiquidRenderer.bounds.size.y;
-        float fluidHeight = centerHeight - ((m_purpleLiquidRenderer.material.GetFloat("_Fill") - dotProduct * centerOffset) * transform.lossyScale.y);
+        float fluidHeight = centerHeight - m_purpleLiquidRenderer.material.GetFloat("_Fill") * transform.lossyScale.y;
+        //float fluidHeight = centerHeight - (m_purpleLiquidRenderer.material.GetFloat("_Fill") / (1 + -cylindricalFixVariable * 0.5f * (Mathf.Cos(dotProduct * Mathf.PI) + 1)) - dotProduct * centerOffset) * transform.lossyScale.y;
         float radius = Mathf.Abs(xzOffset) * transform.lossyScale.x;
         float radiusToFluidAngled = fluidHeight / Mathf.Sin(angle);
         float chord = 2 * Mathf.Sqrt((radius * radius) - (radiusToFluidAngled * radiusToFluidAngled));
         if (currentStream != null) {
-            currentStream.SetWidthMultiplier(chord);
+            currentStream.SetWidthMultiplier(chord, radius);
 		}
         Debug.Log("dotProduct: " + dotProduct + " angle:" + angle * Mathf.Rad2Deg + " fluidHeight:" + fluidHeight + " centerHeight:" + centerHeight + " radius:" + radius + " radiusToFluidAngled:" + radiusToFluidAngled + " chord:" + chord);
 		

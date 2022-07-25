@@ -92,8 +92,12 @@ public class Stream : MonoBehaviour
 	}
 
 	public void SetWidthMultiplier(float width, float radius) {
-		float percentage = (width / (2 * radius)) * 0.1f;
-		lineRenderer.startWidth = 0.0025f * 0.25f + (width - 0.0025f * 0.25f) * percentage;
-		lineRenderer.endWidth = 0.0025f + (radius - 0.0025f) * percentage;
+		float percentage = (width / (2 * radius)) * 0.25f;
+		float startWidth = 0.025f * 0.25f + width * percentage;
+		float endWidth = 0.025f + 2 * radius *  percentage;
+
+		lineRenderer.startWidth = startWidth;
+		lineRenderer.endWidth = endWidth;
+		Debug.Log("startwidth:" + startWidth + " endWidth:" + endWidth + " percentage:" + percentage);
 	}
 }

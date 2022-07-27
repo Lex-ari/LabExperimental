@@ -30,16 +30,21 @@ public class FluidScript : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        UpdateFill(); // Render Fill into beaker
+        UpdateFillRender(); // Render Fill into beaker
         UpdateOrigin(); // Update lowest position of beaker for pouring
         UpdatePour(); // Determine angle of pouring and enables
-        UpdateStreamWidth(); // Adjusts to the angle of pouring / how much is being poured out.
+        if (isPouring) {
+            UpdateStreamWidth(); // Adjusts to the angle of pouring / how much is being poured out.
+            UpdateFillValue();
+
+        }
+        
     }
 
     // Used to "render" the fill, taking into consideration of offset of the mesh and rotation.
     // Not geometrically accurate, but suffices for testing.
     // Will remake in the future to account for cylindrical and cone shaped glassware
-    private void UpdateFill() {
+    private void UpdateFillRender() {
         Vector3 upvector = gameObject.transform.up ;
         float dot = Vector3.Dot(upvector, Vector3.up);
         float cylindricalFix = 1 + -cylindricalFixVariable * 0.5f * (Mathf.Cos(dot * Mathf.PI) + 1);
@@ -108,18 +113,48 @@ public class FluidScript : MonoBehaviour
 	}
 
     private void UpdateStreamWidth() {
-        float dotProduct = Vector3.Dot(transform.up, Vector3.up);
-		float angle = Mathf.Acos(dotProduct) + 10f * Mathf.Deg2Rad;
-        float centerHeight = 0.5f * dotProduct * m_purpleLiquidRenderer.bounds.size.y;
-        float fluidHeight = centerHeight - m_purpleLiquidRenderer.material.GetFloat("_Fill") * transform.lossyScale.y;
-        //float fluidHeight = centerHeight - (m_purpleLiquidRenderer.material.GetFloat("_Fill") / (1 + -cylindricalFixVariable * 0.5f * (Mathf.Cos(dotProduct * Mathf.PI) + 1)) - dotProduct * centerOffset) * transform.lossyScale.y;
-        float radius = Mathf.Abs(xzOffset) * transform.lossyScale.x;
-        float radiusToFluidAngled = fluidHeight / Mathf.Sin(angle);
-        float chord = 2 * Mathf.Sqrt((radius * radius) - (radiusToFluidAngled * radiusToFluidAngled));
+        float radius = GetLossyRadius();
+        float centerToFluidAngled = GetDistanceFromCenterToFluid();
+        float chord = 2 * Mathf.Sqrt((radius * radius) - (centerToFluidAngled * centerToFluidAngled));
         if (currentStream != null) {
             currentStream.SetWidthMultiplier(chord, radius);
 		}
-        //Debug.Log("dotProduct: " + dotProduct + " angle:" + angle * Mathf.Rad2Deg + " fluidHeight:" + fluidHeight + " centerHeight:" + centerHeight + " radius:" + radius + " radiusToFluidAngled:" + radiusToFluidAngled + " chord:" + chord);
+    }
+
+    private float GetDistanceFromCenterToFluid() {
+        float dotProduct = Vector3.Dot(transform.up, Vector3.up);
+        float angle = Mathf.Acos(dotProduct) + 10f * Mathf.Deg2Rad;
+        float centerHeight = 0.5f * dotProduct * m_purpleLiquidRenderer.bounds.size.y;
+        float fluidHeight = centerHeight - m_purpleLiquidRenderer.material.GetFloat("_Fill") * transform.lossyScale.y;
+        //float fluidHeight = centerHeight - (m_purpleLiquidRenderer.material.GetFloat("_Fill") / (1 + -cylindricalFixVariable * 0.5f * (Mathf.Cos(dotProduct * Mathf.PI) + 1)) - dotProduct * centerOffset) * transform.lossyScale.y;
+        float radiusToFluidAngled = fluidHeight / Mathf.Sin(angle);
+        //Debug.Log("dotProduct: " + dotProduct + " angle:" + angle * Mathf.Rad2Deg + " fluidHeight:" + fluidHeight + " centerHeight:" + centerHeight + " radiusToFluidAngled:" + radiusToFluidAngled + " chord:" + chord);
+        return radiusToFluidAngled;
+    }
+
+    private float GetLossyRadius() {
+        return Mathf.Abs(xzOffset) * transform.lossyScale.x;
+	}
+
+    // Calculates the amount of fluid "spilled" when tilted.
+    // Uses Bernoulli's Principle
+    private void UpdateFillValue() {
+        float radius = GetLossyRadius();
+        float centerToFluidDistance = GetDistanceFromCenterToFluid();
+        float volume = radius * radius * Mathf.PI * GetComponent<Renderer>().bounds.size.y; // Meters ^3
+        float spillHeight = (m_purpleLiquidRenderer.material.GetFloat("_Fill") * transform.lossyScale.y) - (origin.transform.position.y - transform.position.y);
+        // Bernoulli's Equation: Pressure1 + 0.5*fluidDensity*velocity^2 + fluidDensity*gravity*height1 = Pressure2 + 0.5*fluidDensity*volume^2 + pressureDensity*gravity*height2;
+        // Pressure 1 = pressure 2, 
+        // gravity*height1 = 0.5*velocity^2
+        float velocity = Mathf.Sqrt(9.8f * spillHeight / 0.5f);
+        float theta = 0;
+        if (centerToFluidDistance < radius) {
+            theta = 2f * Mathf.Acos(centerToFluidDistance / radius);
+		}
+        float segmentArea = 0.5f * radius * radius * (theta - Mathf.Sin(theta));
+        float rateVolumeDepleted = segmentArea * velocity; // Meters ^ 3 / s
+        float percentageVolumeDepleted = rateVolumeDepleted / volume; // Percentage removed / s
+        Fill -= percentageVolumeDepleted * Time.deltaTime;
     }
 
 

@@ -104,6 +104,7 @@ public class FluidScript : MonoBehaviour
     // Determines if the angle of the cylinder is enough to pour out liquid.
     // If the origin (lip of beaker) is less than the fill, it spills.
     private bool CalculatePourEnabled() {
+        //Debug.Log("origin - transform:" + (origin.transform.position.y - transform.position.y) + " liquidRenderer" + (m_purpleLiquidRenderer.material.GetFloat("_Fill") * transform.lossyScale.y));
         return origin.transform.position.y - transform.position.y < m_purpleLiquidRenderer.material.GetFloat("_Fill") * transform.lossyScale.y;
 	}
 
@@ -115,10 +116,15 @@ public class FluidScript : MonoBehaviour
     private void UpdateStreamWidth() {
         float radius = GetLossyRadius();
         float centerToFluidAngled = GetDistanceFromCenterToFluid();
-        float chord = 2 * Mathf.Sqrt((radius * radius) - (centerToFluidAngled * centerToFluidAngled));
+        float dotProduct = Vector3.Dot(transform.up, Vector3.up);
+        float chord = 2 * radius;
+        if (dotProduct > 0) {
+            chord = 2 * Mathf.Sqrt((radius * radius) - (centerToFluidAngled * centerToFluidAngled));
+		}
         if (currentStream != null) {
             currentStream.SetWidthMultiplier(chord, radius);
 		}
+        Debug.Log("chord: " + chord + " centerToFluidAngled:" + centerToFluidAngled);
     }
 
     private float GetDistanceFromCenterToFluid() {
@@ -128,6 +134,9 @@ public class FluidScript : MonoBehaviour
         float fluidHeight = centerHeight - m_purpleLiquidRenderer.material.GetFloat("_Fill") * transform.lossyScale.y;
         //float fluidHeight = centerHeight - (m_purpleLiquidRenderer.material.GetFloat("_Fill") / (1 + -cylindricalFixVariable * 0.5f * (Mathf.Cos(dotProduct * Mathf.PI) + 1)) - dotProduct * centerOffset) * transform.lossyScale.y;
         float radiusToFluidAngled = fluidHeight / Mathf.Sin(angle);
+        if (radiusToFluidAngled < 0) {
+            return 0;
+		}
         //Debug.Log("dotProduct: " + dotProduct + " angle:" + angle * Mathf.Rad2Deg + " fluidHeight:" + fluidHeight + " centerHeight:" + centerHeight + " radiusToFluidAngled:" + radiusToFluidAngled + " chord:" + chord);
         return radiusToFluidAngled;
     }

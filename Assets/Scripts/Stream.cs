@@ -12,7 +12,7 @@ public class Stream : MonoBehaviour
 
 	private void Awake() {
 		lineRenderer = GetComponent<LineRenderer>();
-		//splashParticle = GetComponentInChildren<ParticleSystem>();
+		splashParticle = GetComponentInChildren<ParticleSystem>();
 	}
 
 	private void Start() {
@@ -22,6 +22,7 @@ public class Stream : MonoBehaviour
 
 	// Used for external functions, begins the pouring "animation"
 	public void Begin() {
+		StartCoroutine(UpdateParticle());
 		pourRoutine = StartCoroutine(BeginPour());
 	}
 
@@ -87,6 +88,9 @@ public class Stream : MonoBehaviour
 	// Placeholder - Used for splash effects
 	private IEnumerator UpdateParticle() {
 		while (gameObject.activeSelf) {
+			splashParticle.gameObject.transform.position = targetPosition;
+			bool isHitting = HasReachedPosition(1, targetPosition);
+			splashParticle.gameObject.SetActive(isHitting);
 			yield return null;
 		}
 	}
@@ -98,6 +102,6 @@ public class Stream : MonoBehaviour
 
 		lineRenderer.startWidth = startWidth;
 		lineRenderer.endWidth = endWidth;
-		Debug.Log("startwidth:" + startWidth + " endWidth:" + endWidth + " percentage:" + percentage);
+		//Debug.Log("startwidth:" + startWidth + " endWidth:" + endWidth + " percentage:" + percentage);
 	}
 }

@@ -171,4 +171,7 @@ public class FluidScript : LiquidType
         Fill -= percentageVolumeDepleted * Time.deltaTime;
         return rateVolumeDepleted * Time.deltaTime;
     }
+    private void AddVolumeToStream(float volume) {
+
+	}
 }

@@ -10,6 +10,11 @@ public class Stream : MonoBehaviour
 	private ParticleSystem splashParticle = null;
 	private Coroutine pourRoutine = null;
 
+	private Puddle currentPuddle = null;
+	public GameObject puddlePrefab;
+
+	private float bufferVolume = 0f;
+
 	private void Awake() {
 		lineRenderer = GetComponent<LineRenderer>();
 		splashParticle = GetComponentInChildren<ParticleSystem>();
@@ -23,6 +28,7 @@ public class Stream : MonoBehaviour
 	// Used for external functions, begins the pouring "animation"
 	public void Begin() {
 		StartCoroutine(UpdateParticle());
+		StartCoroutine(DetermineHit());
 		pourRoutine = StartCoroutine(BeginPour());
 	}
 
@@ -95,6 +101,24 @@ public class Stream : MonoBehaviour
 		}
 	}
 
+	private IEnumerator DetermineHit() {
+		while (gameObject.activeSelf) {
+			if (HasReachedPosition(1, targetPosition)) {
+				RaycastHit hit;
+				Ray ray = new Ray(lineRenderer.GetPosition(1) + Vector3.up * 0.1f, Vector3.down);
+				if(Physics.Raycast(ray, out hit)) {
+					if (!hit.collider.CompareTag("Puddle")) {
+						currentPuddle = CreatePuddle();
+					} else {
+
+					}
+				}
+			}
+			yield return null;
+		}
+	}
+
+
 	public void SetWidthMultiplier(float width, float radius) {
 		float percentage = (width / (2 * radius)) * 0.25f;
 		float startWidth = 0.025f * 0.25f + width * percentage;
@@ -103,5 +127,10 @@ public class Stream : MonoBehaviour
 		lineRenderer.startWidth = startWidth;
 		lineRenderer.endWidth = endWidth;
 		//Debug.Log("startwidth:" + startWidth + " endWidth:" + endWidth + " percentage:" + percentage);
+	}
+
+	private Puddle CreatePuddle() {
+		GameObject puddleObject = Instantiate(puddlePrefab, targetPosition, Quaternion.identity);
+		return puddleObject.GetComponent<Puddle>();
 	}
 }

@@ -154,6 +154,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 29165a0885f0ec14a89270cd443b0537, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  puddlePrefab: {fileID: 8760329484712658390, guid: dd92acf18cf10c34092999af98a24cd2, type: 3}
 --- !u!1 &4449721226145621997
 GameObject:
   m_ObjectHideFlags: 0

@@ -2,11 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class FluidScript : MonoBehaviour
+public class FluidScript : LiquidType
 {
 
     private Renderer m_purpleLiquidRenderer;
-    public float Fill;  
     public float centerOffset;
     public float cylindricalFixVariable;
 
@@ -22,23 +21,21 @@ public class FluidScript : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        m_purpleLiquidRenderer = gameObject.GetComponent<Renderer>();
+        m_purpleLiquidRenderer = GetComponent<Renderer>();
         xzOffset = origin.transform.localPosition.x;
         heightOffset = origin.transform.localPosition.y;
+        StartCoroutine(UpdateOrigin());
+        StartCoroutine(UpdateStreamWidth()); // Adjusts to the angle of pouring / how much is being poured out.
 }
 
     // Update is called once per frame
     void Update()
     {
         UpdateFillRender(); // Render Fill into beaker
-        UpdateOrigin(); // Update lowest position of beaker for pouring
         UpdatePour(); // Determine angle of pouring and enables
         if (isPouring) {
-            UpdateStreamWidth(); // Adjusts to the angle of pouring / how much is being poured out.
-            UpdateFillValue();
-
-        }
-        
+            float removedVolume = UpdateFillValue();
+        } 
     }
 
     // Used to "render" the fill, taking into consideration of offset of the mesh and rotation.
@@ -81,24 +78,27 @@ public class FluidScript : MonoBehaviour
 
     // Calculates the "lowest point" of the top of the cylinder and sets the origin to that point.
     // Simulates pouring at a weird angle.
-    private void UpdateOrigin() {
-        float xValue = transform.eulerAngles.x; // z direction
-        float zValue = transform.eulerAngles.z; // x direction
-        float angle;
-        if (zValue % 359.99 < 1E-3) { // used to prevent a 1/0 = infinity calculation, saving FPS.
-            if (xValue > 0) {
-                angle = 90;
-			} else {
-                angle = -90;
-			}
-		} else {
-            angle = Mathf.Atan(Mathf.Sin(xValue * Mathf.Deg2Rad) / Mathf.Sin(zValue * Mathf.Deg2Rad)) * Mathf.Rad2Deg;
-            if (zValue > 180) {
-                angle += 180;
-			}
-        }
+    private IEnumerator UpdateOrigin() {
+        while (gameObject.activeSelf) {
+            float xValue = transform.eulerAngles.x; // z direction
+            float zValue = transform.eulerAngles.z; // x direction
+            float angle;
+            if (zValue % 359.99 < 1E-3) { // used to prevent a 1/0 = infinity calculation, saving FPS.
+                if (xValue > 0) {
+                    angle = 90;
+			    } else {
+                    angle = -90;
+			    }
+		    } else {
+                angle = Mathf.Atan(Mathf.Sin(xValue * Mathf.Deg2Rad) / Mathf.Sin(zValue * Mathf.Deg2Rad)) * Mathf.Rad2Deg;
+                if (zValue > 180) {
+                    angle += 180;
+			    }
+            }
+            origin.transform.localPosition = new Vector3(Mathf.Cos(angle * Mathf.Deg2Rad) * xzOffset, heightOffset, -Mathf.Sin(angle * Mathf.Deg2Rad) * xzOffset);
+            yield return null;
+		}
         
-        origin.transform.localPosition = new Vector3(Mathf.Cos(angle * Mathf.Deg2Rad) * xzOffset, heightOffset, -Mathf.Sin(angle * Mathf.Deg2Rad) * xzOffset);
 	}
 
     // Determines if the angle of the cylinder is enough to pour out liquid.
@@ -113,18 +113,22 @@ public class FluidScript : MonoBehaviour
         return streamObject.GetComponent<Stream>();
 	}
 
-    private void UpdateStreamWidth() {
-        float radius = GetLossyRadius();
-        float centerToFluidAngled = GetDistanceFromCenterToFluid();
-        float dotProduct = Vector3.Dot(transform.up, Vector3.up);
-        float chord = 2 * radius;
-        if (dotProduct > 0) {
-            chord = 2 * Mathf.Sqrt((radius * radius) - (centerToFluidAngled * centerToFluidAngled));
+    private IEnumerator UpdateStreamWidth() {
+        while (gameObject.activeSelf) {
+            float radius = GetLossyRadius();
+            float centerToFluidAngled = GetDistanceFromCenterToFluid();
+            float dotProduct = Vector3.Dot(transform.up, Vector3.up);
+            float chord = 2 * radius;
+            if (dotProduct > 0) {
+                chord = 2 * Mathf.Sqrt((radius * radius) - (centerToFluidAngled * centerToFluidAngled));
+		    }
+            if (currentStream != null) {
+                currentStream.SetWidthMultiplier(chord, radius);
+		    }
+            //Debug.Log("chord: " + chord + " centerToFluidAngled:" + centerToFluidAngled);
+            yield return null;
 		}
-        if (currentStream != null) {
-            currentStream.SetWidthMultiplier(chord, radius);
-		}
-        Debug.Log("chord: " + chord + " centerToFluidAngled:" + centerToFluidAngled);
+        
     }
 
     private float GetDistanceFromCenterToFluid() {
@@ -147,7 +151,8 @@ public class FluidScript : MonoBehaviour
 
     // Calculates the amount of fluid "spilled" when tilted.
     // Uses Bernoulli's Principle
-    private void UpdateFillValue() {
+    // Returns the amount of volume removed in Meters ^ 3.
+    private float UpdateFillValue() {
         float radius = GetLossyRadius();
         float centerToFluidDistance = GetDistanceFromCenterToFluid();
         float volume = radius * radius * Mathf.PI * GetComponent<Renderer>().bounds.size.y; // Meters ^3
@@ -164,7 +169,6 @@ public class FluidScript : MonoBehaviour
         float rateVolumeDepleted = segmentArea * velocity; // Meters ^ 3 / s
         float percentageVolumeDepleted = rateVolumeDepleted / volume; // Percentage removed / s
         Fill -= percentageVolumeDepleted * Time.deltaTime;
+        return rateVolumeDepleted * Time.deltaTime;
     }
-
-
 }

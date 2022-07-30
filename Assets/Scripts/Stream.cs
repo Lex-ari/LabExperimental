@@ -10,10 +10,10 @@ public class Stream : MonoBehaviour
 	private ParticleSystem splashParticle = null;
 	private Coroutine pourRoutine = null;
 
-	private Puddle currentPuddle = null;
+	private LiquidType targetLiquidType = null;
 	public GameObject puddlePrefab;
 
-	private float bufferVolume = 0f;
+	public float bufferVolume = 0f; // meters ^3
 
 	private void Awake() {
 		lineRenderer = GetComponent<LineRenderer>();
@@ -55,6 +55,7 @@ public class Stream : MonoBehaviour
 			targetPosition = FindEndPoint();
 			MoveToPosition(0, transform.position);
 			AnimateToPosition(1, targetPosition);
+			AddBufferToHit();
 			yield return null;
 		}
 	}
@@ -107,10 +108,10 @@ public class Stream : MonoBehaviour
 				RaycastHit hit;
 				Ray ray = new Ray(lineRenderer.GetPosition(1) + Vector3.up * 0.1f, Vector3.down);
 				if(Physics.Raycast(ray, out hit)) {
-					if (!hit.collider.CompareTag("Puddle")) {
-						currentPuddle = CreatePuddle();
+					if (hit.collider.CompareTag("Liquid")) {
+						targetLiquidType = hit.collider.GetComponent<LiquidType>();
 					} else {
-
+						targetLiquidType = CreatePuddle();
 					}
 				}
 			}
@@ -132,5 +133,25 @@ public class Stream : MonoBehaviour
 	private Puddle CreatePuddle() {
 		GameObject puddleObject = Instantiate(puddlePrefab, targetPosition, Quaternion.identity);
 		return puddleObject.GetComponent<Puddle>();
+	}
+
+	public void AddVolumeToBuffer(float volume) {
+		bufferVolume += volume;
+	}
+
+	private void AddBufferToHit() {
+		if (targetLiquidType != null) {
+			float fallDistance = lineRenderer.GetPosition(0).y - lineRenderer.GetPosition(1).y;
+			//Using kinematics, v^2 = v^2,0 + 2aDeltaX
+			float velocity = Mathf.Sqrt(2f * 9.8f * fallDistance);
+			float endWidth = lineRenderer.endWidth;
+			float area = Mathf.Pow(endWidth / 2, 2) * Mathf.PI;
+			float rateVolumeDepleted = area * velocity; // Meters ^3 / t
+			float volumeDepletedFrame = rateVolumeDepleted * Time.deltaTime; // Meters ^3
+			if (bufferVolume > 0) {
+				bufferVolume -= volumeDepletedFrame;
+				targetLiquidType.AddVolume(volumeDepletedFrame);
+			}
+		}
 	}
 }

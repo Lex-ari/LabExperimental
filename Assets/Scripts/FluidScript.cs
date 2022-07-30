@@ -13,6 +13,7 @@ public class FluidScript : LiquidType {
 	public Transform origin;
 	private bool isPouring = false;
 	private Stream currentStream = null;
+	private BoxCollider liquidSurfaceCollider = null;
 
 	private float xzOffset;
 	private float heightOffset;
@@ -22,6 +23,7 @@ public class FluidScript : LiquidType {
 		m_purpleLiquidRenderer = GetComponent<Renderer>();
 		xzOffset = origin.transform.localPosition.x;
 		heightOffset = origin.transform.localPosition.y;
+		liquidSurfaceCollider = GetComponent<BoxCollider>();
 		StartCoroutine(UpdateOrigin());
 		StartCoroutine(UpdateStreamWidth()); // Adjusts to the angle of pouring / how much is being poured out.
 	}
@@ -52,6 +54,8 @@ public class FluidScript : LiquidType {
 			fillValue = ((Fill * 2) - 1) * cylindricalFix + dot * centerOffset;
 		}
 		m_purpleLiquidRenderer.material.SetFloat("_Fill", fillValue);
+		float valueForCollider = ((Fill * 2) - 1) * cylindricalFix + dot * centerOffset;
+		liquidSurfaceCollider.center = new Vector3(liquidSurfaceCollider.center.x, valueForCollider, liquidSurfaceCollider.center.z);
 	}
 	// Allows to set the fill of the beaker from 0 (empty) to 1 (full)
 	public void SetFill(float fill) {
@@ -64,6 +68,7 @@ public class FluidScript : LiquidType {
 		bool pourCheck = CalculatePourEnabled();
 		if (isPouring != pourCheck) {
 			isPouring = pourCheck;
+			liquidSurfaceCollider.enabled = !isPouring;
 			if (isPouring) {
 				currentStream = CreateStream();
 				currentStream.Begin();
@@ -82,7 +87,7 @@ public class FluidScript : LiquidType {
 			float zValue = transform.eulerAngles.z; // x direction
 			float angle;
 			if (zValue % 359.99 < 1E-3) { // used to prevent a 1/0 = infinity calculation, saving FPS.
-				if (xValue > 0) {
+				if (xValue < 180) {
 					angle = 90;
 				} else {
 					angle = -90;
@@ -94,6 +99,7 @@ public class FluidScript : LiquidType {
 				}
 			}
 			origin.transform.localPosition = new Vector3(Mathf.Cos(angle * Mathf.Deg2Rad) * xzOffset, heightOffset, -Mathf.Sin(angle * Mathf.Deg2Rad) * xzOffset);
+			Debug.Log("xvalue:" + xValue + " zValue:" + zValue + " angle:" + angle + " local position:" + origin.transform.localPosition);
 			yield return null;
 		}
 
@@ -174,7 +180,7 @@ public class FluidScript : LiquidType {
 		float rateVolumeDepleted = segmentArea * velocity; // Meters ^ 3 / s
 		float percentageVolumeDepleted = rateVolumeDepleted / volume; // Percentage removed / s
 		Fill -= percentageVolumeDepleted * Time.deltaTime;
-		Debug.Log("centerToFLuidDistnace:" + centerToFluidDistance + " volume:" + volume + " spillHeight:" + spillHeight + " velocity:" + velocity + " theta:" + theta + " segmentedArea:" + segmentArea + "rateVolumeDepleted:" + rateVolumeDepleted);
+		//Debug.Log("centerToFLuidDistnace:" + centerToFluidDistance + " volume:" + volume + " spillHeight:" + spillHeight + " velocity:" + velocity + " theta:" + theta + " segmentedArea:" + segmentArea + "rateVolumeDepleted:" + rateVolumeDepleted);
 		return rateVolumeDepleted * Time.deltaTime; // In meters ^3
 	}
 	private void AddVolumeToStream(float volume) {

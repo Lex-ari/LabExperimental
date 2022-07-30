@@ -55,7 +55,7 @@ Material:
     - _CastShadows: 0
     - _Cull: 0
     - _DstBlend: 10
-    - _Fill: 0.56
+    - _Fill: 0.5
     - _Opacity: 0.5
     - _QueueControl: 0
     - _QueueOffset: -20

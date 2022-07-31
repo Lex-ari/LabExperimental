@@ -127,6 +127,8 @@ public class Stream : MonoBehaviour
 
 		lineRenderer.startWidth = startWidth;
 		lineRenderer.endWidth = endWidth;
+		var shape = splashParticle.shape;
+		shape.radius = endWidth / 2;
 		//Debug.Log("startwidth:" + startWidth + " endWidth:" + endWidth + " percentage:" + percentage);
 	}
 

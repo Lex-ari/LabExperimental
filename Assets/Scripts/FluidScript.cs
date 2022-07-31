@@ -8,7 +8,6 @@ public class FluidScript : LiquidType {
 	public float centerOffset;
 	public float cylindricalFixVariable;
 
-	public float pourThreshold = 45;
 	public GameObject streamPrefab;
 	public Transform origin;
 	private bool isPouring = false;
@@ -123,7 +122,7 @@ public class FluidScript : LiquidType {
 			float centerToFluidAngled = GetDistanceFromCenterToFluid();
 			float dotProduct = Vector3.Dot(transform.up, Vector3.up);
 			float chord = 2 * radius;
-			if (dotProduct > 0) {
+			if (true) {
 				float cSquaredMinusASquared = (radius * radius) - (centerToFluidAngled * centerToFluidAngled);
 				if (cSquaredMinusASquared < 0) {
 					cSquaredMinusASquared = 0;

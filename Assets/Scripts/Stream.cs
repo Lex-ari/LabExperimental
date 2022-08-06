@@ -14,6 +14,8 @@ public class Stream : MonoBehaviour
 	public GameObject puddlePrefab;
 
 	public float bufferVolume = 0f; // meters ^3
+	public float amountReceived = 0f;
+	public float amountPoured = 0f;
 
 	private void Awake() {
 		lineRenderer = GetComponent<LineRenderer>();
@@ -38,6 +40,12 @@ public class Stream : MonoBehaviour
 		pourRoutine = StartCoroutine(EndPour());
 	}
 
+
+	public void Update() {
+		//Debug.Log("amountReceived:" + amountReceived + " amountPoured:" + amountPoured);
+		AddBufferToHit();
+	}
+
 	// Coroutine that moves the begining to the deepest point, simulating the shut off of the fluid.
 	// Gameobject is destroyed once the beginning is at the end.
 	private IEnumerator EndPour() {
@@ -46,7 +54,7 @@ public class Stream : MonoBehaviour
 			AnimateToPosition(1, targetPosition);
 			yield return null;
 		}
-		Destroy(gameObject);
+		//Destroy(gameObject);
 	}
 
 	// Coroutine that continously moves the end position of the line renderer to the deepest point.
@@ -55,10 +63,11 @@ public class Stream : MonoBehaviour
 			targetPosition = FindEndPoint();
 			MoveToPosition(0, transform.position);
 			AnimateToPosition(1, targetPosition);
-			AddBufferToHit();
 			yield return null;
 		}
 	}
+
+	
 
 	// Creates a raycast and returns the position of the first object it intersects.
 	// If it does not interact with an object, the default max distance is used.
@@ -139,21 +148,25 @@ public class Stream : MonoBehaviour
 
 	public void AddVolumeToBuffer(float volume) {
 		bufferVolume += volume;
+		amountReceived += volume;
 	}
 
 	private void AddBufferToHit() {
 		if (targetLiquidType != null) {
-			float fallDistance = lineRenderer.GetPosition(0).y - lineRenderer.GetPosition(1).y;
+			//float fallDistance = lineRenderer.GetPosition(0).y - lineRenderer.GetPosition(1).y;
+			float fallDistance = 1f;
 			//Using kinematics, v^2 = v^2,0 + 2aDeltaX
 			float velocity = Mathf.Sqrt(2f * 9.8f * fallDistance);
 			float endWidth = lineRenderer.endWidth;
 			float area = Mathf.Pow(endWidth / 2, 2) * Mathf.PI;
 			float rateVolumeDepleted = area * velocity; // Meters ^3 / t
 			float volumeDepletedFrame = rateVolumeDepleted * Time.deltaTime; // Meters ^3
-			if (bufferVolume > 0) {
-				bufferVolume -= volumeDepletedFrame;
-				targetLiquidType.AddVolume(volumeDepletedFrame);
+			if (bufferVolume < volumeDepletedFrame) {
+				volumeDepletedFrame = bufferVolume;
 			}
+			bufferVolume -= volumeDepletedFrame;
+			targetLiquidType.AddVolume(volumeDepletedFrame);
+			amountPoured += volumeDepletedFrame;
 		}
 	}
 }

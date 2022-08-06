@@ -16,8 +16,10 @@ public class FluidScript : LiquidType {
 
 	private float xzOffset;
 	private float heightOffset;
-
 	// Start is called before the first frame update
+
+	// Debugging
+	public float amountPoured = 0f;
 	void Start() {
 		m_purpleLiquidRenderer = GetComponent<Renderer>();
 		xzOffset = origin.transform.localPosition.x;
@@ -98,7 +100,7 @@ public class FluidScript : LiquidType {
 				}
 			}
 			origin.transform.localPosition = new Vector3(Mathf.Cos(angle * Mathf.Deg2Rad) * xzOffset, heightOffset, -Mathf.Sin(angle * Mathf.Deg2Rad) * xzOffset);
-			Debug.Log("xvalue:" + xValue + " zValue:" + zValue + " angle:" + angle + " local position:" + origin.transform.localPosition);
+			//Debug.Log("xvalue:" + xValue + " zValue:" + zValue + " angle:" + angle + " local position:" + origin.transform.localPosition);
 			yield return null;
 		}
 
@@ -162,7 +164,7 @@ public class FluidScript : LiquidType {
 	private float UpdateFillValue() {
 		float radius = GetLossyRadius();
 		float centerToFluidDistance = GetDistanceFromCenterToFluid();
-		float volume = radius * radius * Mathf.PI * GetComponent<Renderer>().bounds.size.y; // Meters ^3
+		float volume = radius * radius * Mathf.PI * GetComponent<Renderer>().localBounds.size.y; // Meters ^3
 		float spillHeight = (m_purpleLiquidRenderer.material.GetFloat("_Fill") * transform.lossyScale.y) - (origin.transform.position.y - transform.position.y);
 		// Bernoulli's Equation: Pressure1 + 0.5*fluidDensity*velocity^2 + fluidDensity*gravity*height1 = Pressure2 + 0.5*fluidDensity*volume^2 + pressureDensity*gravity*height2;
 		// Pressure 1 = pressure 2, 
@@ -177,10 +179,20 @@ public class FluidScript : LiquidType {
 		}
 		float segmentArea = 0.5f * radius * radius * (theta - Mathf.Sin(theta));
 		float rateVolumeDepleted = segmentArea * velocity; // Meters ^ 3 / s
-		float percentageVolumeDepleted = rateVolumeDepleted / volume; // Percentage removed / s
-		Fill -= percentageVolumeDepleted * Time.deltaTime;
+		float metersVolumeDepleted = rateVolumeDepleted * Time.deltaTime;
+		float percentageVolumeDepletedRate = rateVolumeDepleted / volume; // Percentage removed / s
+		float percentageVolumeRemoved = percentageVolumeDepletedRate * Time.deltaTime;
+		if (Fill < percentageVolumeRemoved) {
+			percentageVolumeRemoved = Fill;
+			metersVolumeDepleted *= volume;
+		}
+		Fill -= percentageVolumeRemoved;
 		//Debug.Log("centerToFLuidDistnace:" + centerToFluidDistance + " volume:" + volume + " spillHeight:" + spillHeight + " velocity:" + velocity + " theta:" + theta + " segmentedArea:" + segmentArea + "rateVolumeDepleted:" + rateVolumeDepleted);
-		return rateVolumeDepleted * Time.deltaTime; // In meters ^3
+		amountPoured += metersVolumeDepleted;
+		//Debug.Log("amountpoured: " + amountPoured + "volume: " + volume);
+		
+		
+		return metersVolumeDepleted; // In meters ^3
 	}
 	private void AddVolumeToStream(float volume) {
 		currentStream.AddVolumeToBuffer(volume);
@@ -188,7 +200,7 @@ public class FluidScript : LiquidType {
 
 	public override void AddVolume(float additionalVolume) {
 		float radius = GetLossyRadius();
-		float volume = radius * radius * Mathf.PI * GetComponent<Renderer>().bounds.size.y;
+		float volume = radius * radius * Mathf.PI * GetComponent<Renderer>().localBounds.size.y;
 		Fill += additionalVolume / volume;
 	}
 }

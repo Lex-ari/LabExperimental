@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class FluidScript : LiquidType {
+	const float CUBICM_TO_ML = 1E6f;
 
 	private Renderer m_purpleLiquidRenderer;
 	public float centerOffset;
@@ -22,6 +23,8 @@ public class FluidScript : LiquidType {
 	public float amountPoured = 0f;
 	void Start() {
 		m_purpleLiquidRenderer = GetComponent<Renderer>();
+		Volume = Mathf.PI * Mathf.Pow(m_purpleLiquidRenderer.bounds.size.z / 2, 2) * m_purpleLiquidRenderer.bounds.size.y * CUBICM_TO_ML;
+		Debug.Log(Volume);
 		xzOffset = origin.transform.localPosition.x;
 		heightOffset = origin.transform.localPosition.y;
 		liquidSurfaceCollider = GetComponent<BoxCollider>();

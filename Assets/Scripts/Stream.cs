@@ -54,7 +54,7 @@ public class Stream : MonoBehaviour
 			AnimateToPosition(1, targetPosition);
 			yield return null;
 		}
-		//Destroy(gameObject);
+		Destroy(gameObject);
 	}
 
 	// Coroutine that continously moves the end position of the line renderer to the deepest point.

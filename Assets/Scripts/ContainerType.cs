@@ -2,29 +2,25 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class FluidScript : LiquidType {
-	const float CUBICM_TO_ML = 1E6f;
-
-	private Renderer m_purpleLiquidRenderer;
+public abstract class ContainerType : LiquidType
+{
+	protected Renderer m_purpleLiquidRenderer;
 	public float centerOffset;
 	public float cylindricalFixVariable;
 
 	public GameObject streamPrefab;
 	public Transform origin;
-	private bool isPouring = false;
-	private Stream currentStream = null;
-	private BoxCollider liquidSurfaceCollider = null;
+	protected bool isPouring = false;
+	protected Stream currentStream = null;
+	protected BoxCollider liquidSurfaceCollider = null;
 
-	private float xzOffset;
-	private float heightOffset;
+	protected float xzOffset;
+	protected float heightOffset;
 	// Start is called before the first frame update
 
-	// Debugging
-	public float amountPoured = 0f;
 	void Start() {
 		m_purpleLiquidRenderer = GetComponent<Renderer>();
-		Volume = Mathf.PI * Mathf.Pow(m_purpleLiquidRenderer.bounds.size.z / 2, 2) * m_purpleLiquidRenderer.bounds.size.y * CUBICM_TO_ML;
-		Debug.Log(Volume);
+		ContainerVolume = Mathf.PI * Mathf.Pow(m_purpleLiquidRenderer.bounds.size.z / 2, 2) * m_purpleLiquidRenderer.bounds.size.y * CUBICM_TO_ML; // PI * r^2  *h 
 		xzOffset = origin.transform.localPosition.x;
 		heightOffset = origin.transform.localPosition.y;
 		liquidSurfaceCollider = GetComponent<BoxCollider>();
@@ -45,30 +41,13 @@ public class FluidScript : LiquidType {
 	// Used to "render" the fill, taking into consideration of offset of the mesh and rotation.
 	// Not geometrically accurate, but suffices for testing.
 	// Will remake in the future to account for cylindrical and cone shaped glassware
-	private void UpdateFillRender() {
-		Vector3 upvector = gameObject.transform.up;
-		float dot = Vector3.Dot(upvector, Vector3.up);
-		float cylindricalFix = 1 + -cylindricalFixVariable * 0.5f * (Mathf.Cos(dot * Mathf.PI) + 1);
-		float fillValue;
-		if (Fill < 1E-9) {
-			fillValue = -999;
-		} else if (Fill - 1 > 1E-9) {
-			fillValue = 999;
-		} else {
-			fillValue = ((Fill * 2) - 1) * cylindricalFix + dot * centerOffset;
-		}
-		m_purpleLiquidRenderer.material.SetFloat("_Fill", fillValue);
-		float valueForCollider = ((Fill * 2) - 1) * cylindricalFix + dot * centerOffset;
-		liquidSurfaceCollider.center = new Vector3(liquidSurfaceCollider.center.x, valueForCollider, liquidSurfaceCollider.center.z);
-	}
-	// Allows to set the fill of the beaker from 0 (empty) to 1 (full)
-	public void SetFill(float fill) {
+	protected virtual void UpdateFillRender() {
 
 	}
 
 	// Checks if the object is pouring.
 	// If pouring, starts. If not pouring anymore, stops.
-	private void UpdatePour() {
+	protected void UpdatePour() {
 		bool pourCheck = CalculatePourEnabled();
 		if (isPouring != pourCheck) {
 			isPouring = pourCheck;
@@ -85,7 +64,7 @@ public class FluidScript : LiquidType {
 
 	// Calculates the "lowest point" of the top of the cylinder and sets the origin to that point.
 	// Simulates pouring at a weird angle.
-	private IEnumerator UpdateOrigin() {
+	protected IEnumerator UpdateOrigin() {
 		while (gameObject.activeSelf) {
 			float xValue = transform.eulerAngles.x; // z direction
 			float zValue = transform.eulerAngles.z; // x direction
@@ -111,17 +90,17 @@ public class FluidScript : LiquidType {
 
 	// Determines if the angle of the cylinder is enough to pour out liquid.
 	// If the origin (lip of beaker) is less than the fill, it spills.
-	private bool CalculatePourEnabled() {
+	protected bool CalculatePourEnabled() {
 		//Debug.Log("origin - transform:" + (origin.transform.position.y - transform.position.y) + " liquidRenderer" + (m_purpleLiquidRenderer.material.GetFloat("_Fill") * transform.lossyScale.y));
 		return origin.transform.position.y - transform.position.y < m_purpleLiquidRenderer.material.GetFloat("_Fill") * transform.lossyScale.y;
 	}
 
-	private Stream CreateStream() {
+	protected Stream CreateStream() {
 		GameObject streamObject = Instantiate(streamPrefab, origin.position, Quaternion.identity, origin.transform);
 		return streamObject.GetComponent<Stream>();
 	}
 
-	private IEnumerator UpdateStreamWidth() {
+	protected IEnumerator UpdateStreamWidth() {
 		while (gameObject.activeSelf) {
 			float radius = GetLossyRadius();
 			float centerToFluidAngled = GetDistanceFromCenterToFluid();
@@ -143,7 +122,7 @@ public class FluidScript : LiquidType {
 
 	}
 
-	private float GetDistanceFromCenterToFluid() {
+	protected float GetDistanceFromCenterToFluid() {
 		float dotProduct = Vector3.Dot(transform.up, Vector3.up);
 		float angle = Mathf.Acos(dotProduct) + 10f * Mathf.Deg2Rad;
 		float centerHeight = 0.5f * dotProduct * m_purpleLiquidRenderer.bounds.size.y;
@@ -157,17 +136,16 @@ public class FluidScript : LiquidType {
 		return radiusToFluidAngled;
 	}
 
-	private float GetLossyRadius() {
-		return Mathf.Abs(xzOffset) * transform.lossyScale.x;
+	protected virtual float GetLossyRadius() {
+		return Mathf.Abs(xzOffset) * transform.lossyScale.z;
 	}
 
 	// Calculates the amount of fluid "spilled" when tilted.
 	// Uses Bernoulli's Principle
-	// Returns the amount of volume removed in Meters ^ 3.
-	private float UpdateFillValue() {
+	// Returns the amount of volume removed in mililiters.
+	protected float UpdateFillValue() {
 		float radius = GetLossyRadius();
 		float centerToFluidDistance = GetDistanceFromCenterToFluid();
-		float volume = radius * radius * Mathf.PI * GetComponent<Renderer>().localBounds.size.y; // Meters ^3
 		float spillHeight = (m_purpleLiquidRenderer.material.GetFloat("_Fill") * transform.lossyScale.y) - (origin.transform.position.y - transform.position.y);
 		// Bernoulli's Equation: Pressure1 + 0.5*fluidDensity*velocity^2 + fluidDensity*gravity*height1 = Pressure2 + 0.5*fluidDensity*volume^2 + pressureDensity*gravity*height2;
 		// Pressure 1 = pressure 2, 
@@ -182,28 +160,15 @@ public class FluidScript : LiquidType {
 		}
 		float segmentArea = 0.5f * radius * radius * (theta - Mathf.Sin(theta));
 		float rateVolumeDepleted = segmentArea * velocity; // Meters ^ 3 / s
-		float metersVolumeDepleted = rateVolumeDepleted * Time.deltaTime;
-		float percentageVolumeDepletedRate = rateVolumeDepleted / volume; // Percentage removed / s
-		float percentageVolumeRemoved = percentageVolumeDepletedRate * Time.deltaTime;
-		if (Fill < percentageVolumeRemoved) {
-			percentageVolumeRemoved = Fill;
-			metersVolumeDepleted *= volume;
-		}
-		Fill -= percentageVolumeRemoved;
-		//Debug.Log("centerToFLuidDistnace:" + centerToFluidDistance + " volume:" + volume + " spillHeight:" + spillHeight + " velocity:" + velocity + " theta:" + theta + " segmentedArea:" + segmentArea + "rateVolumeDepleted:" + rateVolumeDepleted);
-		amountPoured += metersVolumeDepleted;
-		//Debug.Log("amountpoured: " + amountPoured + "volume: " + volume);
-		
-		
-		return metersVolumeDepleted; // In meters ^3
-	}
-	private void AddVolumeToStream(float volume) {
-		currentStream.AddVolumeToBuffer(volume);
-	}
+		float miliLitersVolumeDepleted = rateVolumeDepleted * Time.deltaTime * CUBICM_TO_ML;
 
-	public override void AddVolume(float additionalVolume) {
-		float radius = GetLossyRadius();
-		float volume = radius * radius * Mathf.PI * GetComponent<Renderer>().localBounds.size.y;
-		Fill += additionalVolume / volume;
+		if (LiquidVolume < miliLitersVolumeDepleted) {
+			miliLitersVolumeDepleted = LiquidVolume;
+		}
+		LiquidVolume -= miliLitersVolumeDepleted;
+		return miliLitersVolumeDepleted; // In Mililiters
+	}
+	protected void AddVolumeToStream(float volume) {
+		currentStream.AddVolume(volume);
 	}
 }

@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Stream : MonoBehaviour
+public class Stream : LiquidType
 {
 
 	private LineRenderer lineRenderer = null;
@@ -13,10 +13,6 @@ public class Stream : MonoBehaviour
 	private LiquidType targetLiquidType = null;
 	public GameObject puddlePrefab;
 
-	public float bufferVolume = 0f; // meters ^3
-	public float amountReceived = 0f;
-	public float amountPoured = 0f;
-
 	private void Awake() {
 		lineRenderer = GetComponent<LineRenderer>();
 		splashParticle = GetComponentInChildren<ParticleSystem>();
@@ -25,6 +21,7 @@ public class Stream : MonoBehaviour
 	private void Start() {
 		MoveToPosition(0, transform.position);
 		MoveToPosition(1, transform.position);
+		
 	}
 
 	// Used for external functions, begins the pouring "animation"
@@ -146,11 +143,6 @@ public class Stream : MonoBehaviour
 		return puddleObject.GetComponent<Puddle>();
 	}
 
-	public void AddVolumeToBuffer(float volume) {
-		bufferVolume += volume;
-		amountReceived += volume;
-	}
-
 	private void AddBufferToHit() {
 		if (targetLiquidType != null) {
 			//float fallDistance = lineRenderer.GetPosition(0).y - lineRenderer.GetPosition(1).y;
@@ -160,13 +152,12 @@ public class Stream : MonoBehaviour
 			float endWidth = lineRenderer.endWidth;
 			float area = Mathf.Pow(endWidth / 2, 2) * Mathf.PI;
 			float rateVolumeDepleted = area * velocity; // Meters ^3 / t
-			float volumeDepletedFrame = rateVolumeDepleted * Time.deltaTime; // Meters ^3
-			if (bufferVolume < volumeDepletedFrame) {
-				volumeDepletedFrame = bufferVolume;
+			float volumeDepletedFrame = rateVolumeDepleted * Time.deltaTime * CUBICM_TO_ML; // Mililiters
+			if (LiquidVolume < volumeDepletedFrame) {
+				volumeDepletedFrame = LiquidVolume;
 			}
-			bufferVolume -= volumeDepletedFrame;
+			LiquidVolume -= volumeDepletedFrame;
 			targetLiquidType.AddVolume(volumeDepletedFrame);
-			amountPoured += volumeDepletedFrame;
 		}
 	}
 }

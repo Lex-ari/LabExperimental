@@ -115,7 +115,7 @@ public class Stream : LiquidType
 				Ray ray = new Ray(lineRenderer.GetPosition(1) + Vector3.up * 0.1f, Vector3.down);
 				if(Physics.Raycast(ray, out hit)) {
 					if (hit.collider.CompareTag("Liquid")) {
-						targetLiquidType = hit.collider.GetComponent<LiquidType>();
+						targetLiquidType = hit.collider.GetComponentInParent<LiquidType>();
 					} else {
 						targetLiquidType = CreatePuddle();
 					}
@@ -153,10 +153,10 @@ public class Stream : LiquidType
 			float area = Mathf.Pow(endWidth / 2, 2) * Mathf.PI;
 			float rateVolumeDepleted = area * velocity; // Meters ^3 / t
 			float volumeDepletedFrame = rateVolumeDepleted * Time.deltaTime * CUBICM_TO_ML; // Mililiters
-			if (LiquidVolume < volumeDepletedFrame) {
-				volumeDepletedFrame = LiquidVolume;
+			if (liquidVolume < volumeDepletedFrame) {
+				volumeDepletedFrame = liquidVolume;
 			}
-			LiquidVolume -= volumeDepletedFrame;
+			liquidVolume -= volumeDepletedFrame;
 			targetLiquidType.AddVolume(volumeDepletedFrame);
 		}
 	}

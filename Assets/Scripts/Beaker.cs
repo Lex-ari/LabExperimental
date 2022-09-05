@@ -12,7 +12,7 @@ public class Beaker : ContainerType {
 		float dot = Vector3.Dot(upvector, Vector3.up);
 		float cylindricalFix = 1 + -cylindricalFixVariable * 0.5f * (Mathf.Cos(dot * Mathf.PI) + 1);
 		float fillValue;
-		float Fill = LiquidVolume / ContainerVolume;
+		float Fill = liquidVolume / containerVolume;
 		if (Fill < 1E-9) {
 			fillValue = -999;
 		} else if (Fill - 1 > 1E-9) {

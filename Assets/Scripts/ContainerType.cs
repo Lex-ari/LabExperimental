@@ -10,6 +10,7 @@ public abstract class ContainerType : LiquidType
 
 	public GameObject streamPrefab;
 	public Transform origin;
+	public GameObject liquidGameObject;
 	protected bool isPouring = false;
 	protected Stream currentStream = null;
 	protected BoxCollider liquidSurfaceCollider = null;
@@ -18,12 +19,15 @@ public abstract class ContainerType : LiquidType
 	protected float heightOffset;
 	// Start is called before the first frame update
 
+	//Debugging
+	public bool streamEnabled = false;
+
 	void Start() {
-		m_purpleLiquidRenderer = GetComponent<Renderer>();
-		ContainerVolume = Mathf.PI * Mathf.Pow(m_purpleLiquidRenderer.bounds.size.z / 2, 2) * m_purpleLiquidRenderer.bounds.size.y * CUBICM_TO_ML; // PI * r^2  *h 
+		m_purpleLiquidRenderer = liquidGameObject.GetComponent<Renderer>();
+		containerVolume = Mathf.PI * Mathf.Pow(m_purpleLiquidRenderer.bounds.size.z / 2, 2) * m_purpleLiquidRenderer.bounds.size.y * CUBICM_TO_ML; // PI * r^2  *h 
 		xzOffset = origin.transform.localPosition.x;
 		heightOffset = origin.transform.localPosition.y;
-		liquidSurfaceCollider = GetComponent<BoxCollider>();
+		liquidSurfaceCollider = liquidGameObject.GetComponent<BoxCollider>();
 		StartCoroutine(UpdateOrigin());
 		StartCoroutine(UpdateStreamWidth()); // Adjusts to the angle of pouring / how much is being poured out.
 	}
@@ -66,8 +70,8 @@ public abstract class ContainerType : LiquidType
 	// Simulates pouring at a weird angle.
 	protected IEnumerator UpdateOrigin() {
 		while (gameObject.activeSelf) {
-			float xValue = transform.eulerAngles.x; // z direction
-			float zValue = transform.eulerAngles.z; // x direction
+			float xValue = liquidGameObject.transform.eulerAngles.x; // z direction
+			float zValue = liquidGameObject.transform.eulerAngles.z; // x direction
 			float angle;
 			if (zValue % 359.99 < 1E-3) { // used to prevent a 1/0 = infinity calculation, saving FPS.
 				if (xValue < 180) {
@@ -92,7 +96,7 @@ public abstract class ContainerType : LiquidType
 	// If the origin (lip of beaker) is less than the fill, it spills.
 	protected bool CalculatePourEnabled() {
 		//Debug.Log("origin - transform:" + (origin.transform.position.y - transform.position.y) + " liquidRenderer" + (m_purpleLiquidRenderer.material.GetFloat("_Fill") * transform.lossyScale.y));
-		return origin.transform.position.y - transform.position.y < m_purpleLiquidRenderer.material.GetFloat("_Fill") * transform.lossyScale.y;
+		return origin.transform.position.y - liquidGameObject.transform.position.y < m_purpleLiquidRenderer.material.GetFloat("_Fill") * liquidGameObject.transform.lossyScale.y;
 	}
 
 	protected Stream CreateStream() {
@@ -123,10 +127,10 @@ public abstract class ContainerType : LiquidType
 	}
 
 	protected float GetDistanceFromCenterToFluid() {
-		float dotProduct = Vector3.Dot(transform.up, Vector3.up);
+		float dotProduct = Vector3.Dot(liquidGameObject.transform.up, Vector3.up);
 		float angle = Mathf.Acos(dotProduct) + 10f * Mathf.Deg2Rad;
 		float centerHeight = 0.5f * dotProduct * m_purpleLiquidRenderer.bounds.size.y;
-		float fluidHeight = centerHeight - m_purpleLiquidRenderer.material.GetFloat("_Fill") * transform.lossyScale.y;
+		float fluidHeight = centerHeight - m_purpleLiquidRenderer.material.GetFloat("_Fill") * liquidGameObject.transform.lossyScale.y;
 		//float fluidHeight = centerHeight - (m_purpleLiquidRenderer.material.GetFloat("_Fill") / (1 + -cylindricalFixVariable * 0.5f * (Mathf.Cos(dotProduct * Mathf.PI) + 1)) - dotProduct * centerOffset) * transform.lossyScale.y;
 		float radiusToFluidAngled = fluidHeight / Mathf.Sin(angle);
 		if (radiusToFluidAngled < 0) {
@@ -137,7 +141,7 @@ public abstract class ContainerType : LiquidType
 	}
 
 	protected virtual float GetLossyRadius() {
-		return Mathf.Abs(xzOffset) * transform.lossyScale.z;
+		return Mathf.Abs(xzOffset) * liquidGameObject.transform.lossyScale.z;
 	}
 
 	// Calculates the amount of fluid "spilled" when tilted.
@@ -146,7 +150,7 @@ public abstract class ContainerType : LiquidType
 	protected float UpdateFillValue() {
 		float radius = GetLossyRadius();
 		float centerToFluidDistance = GetDistanceFromCenterToFluid();
-		float spillHeight = (m_purpleLiquidRenderer.material.GetFloat("_Fill") * transform.lossyScale.y) - (origin.transform.position.y - transform.position.y);
+		float spillHeight = (m_purpleLiquidRenderer.material.GetFloat("_Fill") * liquidGameObject.transform.lossyScale.y) - (origin.transform.position.y - liquidGameObject.transform.position.y);
 		// Bernoulli's Equation: Pressure1 + 0.5*fluidDensity*velocity^2 + fluidDensity*gravity*height1 = Pressure2 + 0.5*fluidDensity*volume^2 + pressureDensity*gravity*height2;
 		// Pressure 1 = pressure 2, 
 		// gravity*height1 = 0.5*velocity^2
@@ -162,10 +166,10 @@ public abstract class ContainerType : LiquidType
 		float rateVolumeDepleted = segmentArea * velocity; // Meters ^ 3 / s
 		float miliLitersVolumeDepleted = rateVolumeDepleted * Time.deltaTime * CUBICM_TO_ML;
 
-		if (LiquidVolume < miliLitersVolumeDepleted) {
-			miliLitersVolumeDepleted = LiquidVolume;
+		if (liquidVolume < miliLitersVolumeDepleted) {
+			miliLitersVolumeDepleted = liquidVolume;
 		}
-		LiquidVolume -= miliLitersVolumeDepleted;
+		liquidVolume -= miliLitersVolumeDepleted;
 		return miliLitersVolumeDepleted; // In Mililiters
 	}
 	protected void AddVolumeToStream(float volume) {

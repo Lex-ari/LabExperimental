@@ -15,5 +15,8 @@ public abstract class LiquidType : MonoBehaviour
         LiquidVolume += volume;
     }
 
+    public virtual void AddHeat(float heat) {
+
+	}
 
 }

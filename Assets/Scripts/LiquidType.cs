@@ -10,15 +10,20 @@ public abstract class LiquidType : MonoBehaviour
     protected float containerVolume; // In Mililiters (mL)
     public float liquidVolume; // In Mililiters (mL)
     public bool isHeating;
-    public float volumeTemperature;
+    public float volumeTemperature = 0f;
+    public ParticleSystem steamParticle;
 
     // Adds volume to the container in Mililiters
     public virtual void AddVolume(float volume) {
         liquidVolume += volume;
     }
 
-    public virtual void AddHeat(float heat) {
-
-	}
+    public virtual void AddHeat(float heat) { // heat in joules
+        if (!steamParticle.gameObject.activeSelf && volumeTemperature > 330000) {
+            steamParticle.gameObject.SetActive(true);
+		}
+        volumeTemperature += heat;
+        Debug.Log(volumeTemperature);
+    }
 
 }
